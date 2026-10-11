@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Subway Surfers 3D - Web Edition</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Titan+One&family=Outfit:wght@400;600;700;900&display=swap" rel="stylesheet">
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.174.0/build/three.module.js",
+      "canvas-confetti": "https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.4/+esm",
+      "firebase/app": "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js",
+      "firebase/auth": "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js",
+      "firebase/firestore": "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js"
+    }
+  }
+  </script>
+  <script type="module" crossorigin src="/assets/index-DD4Rs0LV.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-BwuQcUp5.css">
+</head>
+<body>
+  <!-- 3D Canvas Container -->
+  <div id="game-container"></div>
+
+  <!-- In-Game HUD -->
+  <div id="hud" class="overlay-screen hidden">
+    <!-- Top Left: Multiplier & Distance -->
+    <div class="hud-top-left">
+      <div class="multiplier-pill">
+        <span class="label">MULTI</span>
+        <span id="hud-multiplier" class="value">x1</span>
+      </div>
+      <div class="distance-pill">
+        <span id="hud-distance">0</span>m
+      </div>
+    </div>
+
+    <!-- Top Center: Current Score -->
+    <div class="hud-top-center">
+      <div class="score-display">
+        <span class="score-title">SCORE</span>
+        <span id="hud-score" class="score-number">0</span>
+      </div>
+    </div>
+
+    <!-- Top Right: Coins & Pause -->
+    <div class="hud-top-right">
+      <div class="coin-pill">
+        <div class="coin-icon"></div>
+        <span id="hud-coins" class="coin-count">0</span>
+      </div>
+      <button id="btn-pause" class="icon-btn" title="Pause Game (P or Esc)">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+          <rect x="6" y="4" width="4" height="16" rx="2" />
+          <rect x="14" y="4" width="4" height="16" rx="2" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Active Powerups Meter Area -->
+    <div id="powerup-timers" class="powerup-timers">
+      <!-- Dynamically filled: Jetpack, Magnet, Super Sneakers, 2X Multiplier -->
+    </div>
+
+    <!-- Hoverboard Status Indicator -->
+    <div id="hoverboard-indicator" class="hoverboard-indicator hidden">
+      <div class="pulse-ring"></div>
+      <span class="hoverboard-text">🛹 HOVERBOARD ACTIVE</span>
+    </div>
+
+    <!-- On-screen mobile/touch swipe controls guide (visible on touch devices) -->
+    <div id="touch-controls-guide" class="touch-hint">
+      Swipe ← ↑ → ↓ to Dash, Jump & Roll
+    </div>
+  </div>
+
+  <!-- Start Screen / Main Menu -->
+  <div id="start-screen" class="overlay-screen">
+    <div class="menu-backdrop"></div>
+    
+    <div class="top-nav-bar">
+      <!-- User Profile Pill -->
+      <div id="user-profile-badge" class="profile-badge">
+        <img id="user-avatar" src="https://api.dicebear.com/7.x/bottts/svg?seed=surfer" alt="Avatar" class="avatar-img" />
+        <div class="user-info">
+          <span id="user-name" class="user-name">Guest Surfer</span>
+          <span id="user-high-badge" class="high-badge">Best: <b id="user-top-score">0</b></span>
+        </div>
+        <button id="btn-google-auth" class="auth-btn" title="Sign In with Google">
+          <svg class="google-icon" viewBox="0 0 24 24" width="18" height="18">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+          </svg>
+          <span id="auth-btn-text">Google Sign In</span>
+        </button>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="top-buttons">
+        <button id="btn-open-leaderboard" class="glass-btn">
+          🏆 Leaderboard
+        </button>
+        <button id="btn-open-records" class="glass-btn">
+          📊 Records
+        </button>
+        <button id="btn-open-settings" class="glass-btn" title="Cloud / Audio Settings">
+          ⚙️
+        </button>
+      </div>
+    </div>
+
+    <!-- Title & Hero -->
+    <div class="hero-center">
+      <div class="logo-box">
+        <h1 class="game-logo">SUBWAY<br><span class="logo-highlight">SURFERS</span></h1>
+        <div class="tagline">3D WEB RUNNER • REAL-TIME GLOBAL LEADERBOARD</div>
+      </div>
+
+      <!-- Play Button Area -->
+      <button id="btn-play" class="play-btn">
+        <span class="btn-shine"></span>
+        <span class="play-icon">▶</span>
+        <span class="play-text">TAP OR PRESS SPACE TO RUN!</span>
+      </button>
+
+      <!-- Keyboard controls reference banner -->
+      <div class="controls-card">
+        <div class="control-col">
+          <div class="key-combo">
+            <span class="key-badge">←</span>
+            <span class="key-badge">→</span>
+            <span class="key-or">or</span>
+            <span class="key-badge">A</span>
+            <span class="key-badge">D</span>
+          </div>
+          <span class="key-label">Switch Lanes</span>
+        </div>
+        <div class="control-col">
+          <div class="key-combo">
+            <span class="key-badge">↑</span>
+            <span class="key-or">or</span>
+            <span class="key-badge">W</span>
+            <span class="key-or">or</span>
+            <span class="key-badge">Space</span>
+          </div>
+          <span class="key-label">Jump</span>
+        </div>
+        <div class="control-col">
+          <div class="key-combo">
+            <span class="key-badge">↓</span>
+            <span class="key-or">or</span>
+            <span class="key-badge">S</span>
+          </div>
+          <span class="key-label">Roll / Duck</span>
+        </div>
+        <div class="control-col">
+          <div class="key-combo">
+            <span class="key-badge">2x Space</span>
+          </div>
+          <span class="key-label">Hoverboard</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      Real Cloud Firestore Sync • Real Google Identity • 100% Fully Playable
+    </div>
+  </div>
+
+  <!-- Game Over Screen -->
+  <div id="game-over-screen" class="overlay-screen hidden">
+    <div class="modal-card game-over-card">
+      <h2 class="card-title crash-title">CRASHED!</h2>
+      
+      <div id="new-high-score-banner" class="new-high-banner hidden">
+        🎉 NEW PERSONAL RECORD! 🎉
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-box main-stat">
+          <span class="stat-lbl">FINAL SCORE</span>
+          <span id="final-score" class="stat-val highlight">0</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-lbl">COINS COLLECTED</span>
+          <span id="final-coins" class="stat-val coin-val">🪙 0</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-lbl">DISTANCE</span>
+          <span id="final-distance" class="stat-val">0 m</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-lbl">ALL-TIME BEST</span>
+          <span id="all-time-best" class="stat-val">0</span>
+        </div>
+      </div>
+
+      <!-- Sync Status Notification -->
+      <div id="sync-status" class="sync-status-msg">
+        ☁️ Syncing record to Global Leaderboard...
+      </div>
+
+      <div class="action-buttons-row">
+        <button id="btn-restart" class="play-btn small">
+          🔄 RUN AGAIN (SPACE)
+        </button>
+        <button id="btn-over-leaderboard" class="glass-btn">
+          🏆 View Global Rank
+        </button>
+        <button id="btn-over-home" class="glass-btn">
+          🏠 Home Menu
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pause Screen -->
+  <div id="pause-screen" class="overlay-screen hidden">
+    <div class="modal-card pause-card">
+      <h2 class="card-title">GAME PAUSED</h2>
+      <p class="pause-subtitle">Take a breather, surfer!</p>
+      
+      <div class="pause-actions">
+        <button id="btn-resume" class="play-btn small">▶ RESUME (P or ESC)</button>
+        <button id="btn-pause-restart" class="glass-btn">🔄 RESTART RUN</button>
+        <button id="btn-toggle-sound" class="glass-btn">🔊 Sound: ON</button>
+        <button id="btn-pause-home" class="glass-btn">🏠 QUIT TO MAIN MENU</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Global Leaderboard Modal -->
+  <div id="leaderboard-modal" class="modal-overlay hidden">
+    <div class="modal-card leaderboard-card">
+      <div class="modal-header">
+        <h2 class="card-title">🏆 GLOBAL LEADERBOARD</h2>
+        <button id="btn-close-leaderboard" class="close-btn">&times;</button>
+      </div>
+      
+      <div class="leaderboard-info-bar">
+        <span>Live Scores from All Players Worldwide</span>
+        <button id="btn-refresh-leaderboard" class="refresh-pill">↻ Refresh</button>
+      </div>
+
+      <!-- Real-time Leaderboard Table -->
+      <div class="leaderboard-table-container">
+        <table class="leaderboard-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Surfer</th>
+              <th>High Score</th>
+              <th>Coins</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboard-body">
+            <!-- Dynamically populated from Firestore / local records -->
+            <tr>
+              <td colspan="5" class="loading-cell">Loading live world rankings...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="modal-footer">
+        <div id="my-rank-banner" class="my-rank-info">
+          Sign in with Google to immortalize your score on the global leaderboard!
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Records / Game History Modal -->
+  <div id="records-modal" class="modal-overlay hidden">
+    <div class="modal-card records-card">
+      <div class="modal-header">
+        <h2 class="card-title">📊 CAREER STATS & RUN RECORDS</h2>
+        <button id="btn-close-records" class="close-btn">&times;</button>
+      </div>
+
+      <div class="career-summary-grid">
+        <div class="stat-card">
+          <span class="sc-label">TOTAL RUNS</span>
+          <span id="record-total-runs" class="sc-val">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="sc-label">HIGHEST SCORE</span>
+          <span id="record-high-score" class="sc-val gold">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="sc-label">TOTAL COINS COLLECTED</span>
+          <span id="record-total-coins" class="sc-val coin">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="sc-label">LONGEST RUN</span>
+          <span id="record-longest-dist" class="sc-val">0 m</span>
+        </div>
+      </div>
+
+      <h3 class="sub-heading">Recent Run History</h3>
+      <div class="history-list-container">
+        <div id="history-runs-list" class="history-list">
+          <!-- Populated dynamically -->
+          <div class="empty-history">No runs recorded yet. Start surfing!</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cloud / Firebase Settings Modal -->
+  <div id="settings-modal" class="modal-overlay hidden">
+    <div class="modal-card settings-card">
+      <div class="modal-header">
+        <h2 class="card-title">⚙️ FIREBASE & GAME SETTINGS</h2>
+        <button id="btn-close-settings" class="close-btn">&times;</button>
+      </div>
+
+      <div class="settings-content">
+        <div class="setting-item">
+          <label>Audio & Sound Effects</label>
+          <button id="btn-sound-setting" class="toggle-btn active">Sound: ENABLED</button>
+        </div>
+
+        <div class="setting-item">
+          <label>Background Synth Beats</label>
+          <button id="btn-music-setting" class="toggle-btn active">Music: ENABLED</button>
+        </div>
+
+        <hr class="settings-divider" />
+
+        <div class="firebase-config-section">
+          <h3>Cloud Firestore & Google Auth Config</h3>
+          <p class="config-desc">
+            The game comes equipped with live Google Authentication & Cloud Firestore synchronization.
+            You can use the built-in cloud instance or connect your own custom Firebase project credentials below:
+          </p>
+
+          <div class="config-form">
+            <textarea id="firebase-config-json" rows="7" placeholder='Paste your Firebase config JSON here, e.g.:
+{
+  "apiKey": "AIzaSy...",
+  "authDomain": "your-app.firebaseapp.com",
+  "projectId": "your-app",
+  "storageBucket": "your-app.appspot.com",
+  "messagingSenderId": "...",
+  "appId": "..."
+}'></textarea>
+            <div class="config-actions">
+              <button id="btn-save-firebase" class="glass-btn primary">Save & Connect Firebase</button>
+              <button id="btn-reset-firebase" class="glass-btn">Reset to Default</button>
+            </div>
+            <div id="firebase-connect-msg" class="config-feedback"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio unlocker and Vite Entry Point -->
+</body>
+</html>
